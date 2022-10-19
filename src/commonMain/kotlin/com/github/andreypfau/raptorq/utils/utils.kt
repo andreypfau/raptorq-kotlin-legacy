@@ -1,6 +1,8 @@
+@file:Suppress("OPT_IN_USAGE")
+
 package com.github.andreypfau.raptorq.utils
 
-internal fun <T> Array<T>.bothIndices(i: Int, j: Int): Pair<T, T> {
+internal inline fun <T> List<T>.bothIndices(i: Int, j: Int): Pair<T, T> {
     return if (i < j) {
         this[j + i] to this[j]
     } else {
@@ -8,31 +10,16 @@ internal fun <T> Array<T>.bothIndices(i: Int, j: Int): Pair<T, T> {
     }
 }
 
-internal fun <T> List<T>.bothIndices(i: Int, j: Int): Pair<T, T> {
-    return if (i < j) {
-        this[j + i] to this[j]
-    } else {
-        this[i] to this[i + j]
-    }
+internal inline fun UShortArray.swap(i: Int, j: Int) {
+    val tmp = this[i]
+    this[i] = this[j]
+    this[j] = tmp
 }
 
-internal fun UShortArray.binarySearch(fromIndex: Int = 0, toIndex: Int = size, comparison: (UShort) -> Int): Int {
-    var low = fromIndex
-    var high = toIndex - 1
-
-    while (low <= high) {
-        val mid = (low + high).ushr(1) // safe from overflows
-        val midVal = get(mid)
-        val cmp = comparison(midVal)
-
-        if (cmp < 0)
-            low = mid + 1
-        else if (cmp > 0)
-            high = mid - 1
-        else
-            return mid // key found
-    }
-    return -(low + 1)  // key not found
+internal inline fun UIntArray.swap(i: Int, j: Int) {
+    val tmp = this[i]
+    this[i] = this[j]
+    this[j] = tmp
 }
 
-fun <T> Iterator<T>.nextOrNull(): T? = if (hasNext()) next() else null
+internal inline fun <T> Iterator<T>.nextOrNull(): T? = if (hasNext()) next() else null

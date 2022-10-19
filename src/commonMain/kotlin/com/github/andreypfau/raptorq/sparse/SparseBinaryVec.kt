@@ -2,32 +2,39 @@
 
 package com.github.andreypfau.raptorq.sparse
 
-import com.github.andreypfau.raptorq.octet.Octet
 import com.github.andreypfau.raptorq.utils.nextOrNull
 
 class SparseBinaryVec(
-    val elements: MutableList<UShort>
-) : Iterable<UShort> by elements {
+    // Kept sorted by the usize (key). Only ones are stored, zeros are implicit
+    private var elements: MutableList<UShort>
+) : Iterable<UShort> {
+    constructor(capacity: Int) : this(ArrayList(capacity))
+
+    // Returns the internal index into self.elements matching key i, or the index
+    // at which it can be inserted (maintaining sorted order)
     fun keyToInternalIndex(i: UShort): Int = elements.binarySearch { it.compareTo(i) }
 
     val size: Int get() = elements.size
 
-    fun getByRawIndex(i: Int): Pair<Int, Octet> = elements[i].toInt() to Octet.ONE
+    fun getByRawIndex(i: Int): Pair<Int, Boolean> = elements[i].toInt() to true
 
+    // Returns true, if a new column was added
     fun addAssign(other: SparseBinaryVec): Boolean {
+        // Fast path for a single value that's being eliminated
         if (other.elements.size == 1) {
             val otherIndex = other.elements[0]
             val index = keyToInternalIndex(otherIndex)
             if (index >= 0) {
+                // Adding 1 + 1 = 0 in GF(256), so remove this
                 elements.removeAt(index)
             } else {
-                elements.add(-index - 1, otherIndex)
+                elements.add(index, otherIndex)
                 return true
             }
             return false
         }
 
-        val result = mutableListOf<UShort>()
+        val result = ArrayList<UShort>(elements.size + other.elements.size)
         val selfIter = elements.iterator()
         val otherIter = other.elements.iterator()
         var selfNext = selfIter.nextOrNull()
@@ -44,6 +51,7 @@ class SparseBinaryVec(
                         }
 
                         0 -> {
+                            // Adding 1 + 1 = 0 in GF(256), so skip this index
                             selfNext = selfIter.nextOrNull()
                             otherNext = otherIter.nextOrNull()
                         }
@@ -66,44 +74,43 @@ class SparseBinaryVec(
                 break
             }
         }
-        elements.clear()
-        elements.addAll(result)
-
+        elements = result
         return columnAdded
     }
 
-    fun remove(i: Int): Octet? {
+    fun remove(i: Int): Boolean {
         val index = keyToInternalIndex(i.toUShort())
         if (index >= 0) {
             elements.removeAt(index)
-            return Octet.ONE
+            return true
         }
-        return null
+        return false
     }
 
-    fun retain(predicate: (Pair<Int, Octet>) -> Boolean) {
-        elements.retainAll { predicate(it.toInt() to Octet.ONE) }
+    fun retain(predicate: (Pair<Int, Boolean>) -> Boolean) {
+        elements.retainAll { predicate(it.toInt() to true) }
     }
 
-    operator fun get(i: Int): Octet? {
+    fun keysValues(): Sequence<Pair<Int, Boolean>> = elements.asSequence().map { it.toInt() to true }
+
+    operator fun get(i: Int): Boolean {
         val index = keyToInternalIndex(i.toUShort())
         if (index >= 0) {
-            return Octet.ONE
+            return true
         }
-        return null
+        return false
     }
 
-    fun keysValues(): Sequence<Pair<Int, Octet>> = elements.asSequence().map { it.toInt() to Octet.ONE }
-
-    fun insert(i: Int, value: Octet) {
-        require(i < 65536)
-        if (value == Octet.ZERO) {
-            remove(i)
-        } else {
+    operator fun set(i: Int, value: Boolean) {
+        if (value) {
             val index = keyToInternalIndex(i.toUShort())
             if (index < 0) {
                 elements.add(-index - 1, i.toUShort())
             }
+        } else {
+            remove(i)
         }
     }
+
+    override fun iterator(): Iterator<UShort> = elements.iterator()
 }

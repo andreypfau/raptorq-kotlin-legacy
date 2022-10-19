@@ -6,31 +6,40 @@ import com.github.andreypfau.raptorq.arraymap.ImmutableListMap
 import com.github.andreypfau.raptorq.arraymap.ImmutableListMapBuilder
 import com.github.andreypfau.raptorq.iterators.OctetIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
-import com.github.andreypfau.raptorq.octet.Octet
 import com.github.andreypfau.raptorq.sparse.SparseBinaryVec
 import com.github.andreypfau.raptorq.utils.bothIndices
+import com.github.andreypfau.raptorq.utils.swap
 
+/**
+ * Stores a matrix in sparse representation, with an optional dense block for the right most columns
+ * The logical storage is as follows:
+ * |---------------------------------------|
+ * |                          | (optional) |
+ * |      sparse rows         | dense      |
+ * |                          | columns    |
+ * |---------------------------------------|
+ */
 class SparseBinaryMatrix(
     override var height: Int,
     override var width: Int,
-    var sparseElements: MutableList<SparseBinaryVec>,
-    var denseElements: ULongArray,
-    var sparseColumnarValues: ImmutableListMap?,
-    var logicalRowToPhysical: UIntArray,
-    var physicalRowToLogical: UIntArray,
-    var logicalColToPhysical: UShortArray,
-    var physicalColToLogical: UShortArray,
-    var columnIndexDisabled: Boolean,
+    /**
+     * Note these are stored right aligned, so that the right most element is always at
+     * `denseElements[x] & (1 << 63)`
+     */
     var numDenseColumns: Int,
+    var sparseElements: MutableList<SparseBinaryVec> = Array(height) { SparseBinaryVec(10) }.toMutableList(),
+    var denseElements: ULongArray = if (numDenseColumns > 0) {
+        ULongArray(height * ((numDenseColumns - 1) / WORD_WIDTH + 1))
+    } else {
+        ULongArray(0)
+    },
+    var sparseColumnarValues: ImmutableListMap? = null,
+    var logicalRowToPhysical: UIntArray = UIntArray(height) { it.toUInt() },
+    var physicalRowToLogical: UIntArray = UIntArray(height) { it.toUInt() },
+    var logicalColToPhysical: UShortArray = UShortArray(width) { it.toUShort() },
+    var physicalColToLogical: UShortArray = UShortArray(width) { it.toUShort() },
+    var columnIndexDisabled: Boolean = true,
 ) : BinaryMatrix {
-    companion object {
-        val WORD_WIDTH = 64
-
-        fun selectMask(bit: Int) = 1UL shl bit
-        fun clearBit(word: ULong, bit: Int) = word and selectMask(bit).inv()
-        fun setBit(word: ULong, bit: Int) = word or selectMask(bit)
-    }
-
     fun logicalColToDenseCol(col: Int): Int {
         require(col >= width - numDenseColumns)
         return col - (width - numDenseColumns)
@@ -46,94 +55,110 @@ class SparseBinaryMatrix(
 
     fun wordOffset(bit: Int) = (leftPaddingBits() + bit) / WORD_WIDTH
 
-    override operator fun set(i: Int, j: Int, value: Octet) {
+    override operator fun set(i: Int, j: Int, value: Boolean) {
         val physicalI = logicalRowToPhysical[i].toInt()
         val physicalJ = logicalColToPhysical[j].toInt()
         if (width - j <= numDenseColumns) {
             val (word, bit) = bitPosition(physicalI, logicalColToDenseCol(j))
-            if (value == Octet.ZERO) {
-                denseElements[word] = clearBit(denseElements[word], bit)
-            } else {
+            if (value) {
                 denseElements[word] = setBit(denseElements[word], bit)
+            } else {
+                denseElements[word] = clearBit(denseElements[word], bit)
             }
         } else {
-            sparseElements[physicalJ].insert(physicalI, value)
+            sparseElements[physicalJ][physicalI] = value
         }
     }
 
     override fun countOnes(row: Int, startCol: Int, endCol: Int): Int {
         if (endCol > width - numDenseColumns) {
-            TODO("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
+            throw NotImplementedError("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
         }
         var ones = 0
         val physicalRow = logicalRowToPhysical[row].toInt()
         for ((physicalCol, value) in sparseElements[physicalRow].keysValues()) {
             val col = physicalColToLogical[physicalCol].toInt()
-            if (col in startCol until endCol && value == Octet.ONE) {
+            if (col in startCol until endCol && value) {
                 ones++
             }
         }
         return ones
     }
 
-    override fun getSubRowAsOctets(row: Int, startCol: Int): BinaryOctetVec {
+    /**
+     * The following implementation is equivalent to
+     *
+     * `.map{ x -> get(row, x) } `
+     *
+     * but this implementation optimizes for sequential access and avoids all the
+     * extra bit index math
+     */
+    override fun subRowAsOctets(row: Int, startCol: Int): BinaryOctetVec {
         val firstDenseColumn = width - numDenseColumns
         check(startCol == firstDenseColumn)
+
         val physicalRow = logicalRowToPhysical[row].toInt()
         val firstWord = bitPosition(physicalRow, 0).first
         val lastWord = firstWord + rowWordWidth()
         return BinaryOctetVec(denseElements.copyOfRange(firstWord, lastWord), numDenseColumns)
     }
 
-    override fun queryNonZeroColumns(row: Int, startCol: Int): List<Int> {
+    /**
+     * The following implementation is equivalent to
+     *
+     * `.filter { x -> get(row, x) }`
+     *
+     * but this implementation optimizes for sequential access and avoids all the
+     * extra bit index math
+     */
+    override fun nonZeroColumns(row: Int, startCol: Int): Sequence<Int> {
         require(startCol == width - numDenseColumns)
-        val result = ArrayList<Int>()
-        val physicalRow = logicalRowToPhysical[row].toInt()
-        var (word, bit) = bitPosition(physicalRow, logicalColToDenseCol(startCol))
-        var col = startCol
-        var block = denseElements[word]
-        while (block.countTrailingZeroBits() < WORD_WIDTH) {
-            result.add(col + block.countTrailingZeroBits() - bit)
-            block = block and selectMask(block.countTrailingZeroBits()).inv()
-        }
-        col += WORD_WIDTH - bit
-        word++
-
-        while (col < width) {
+        return sequence {
+            val physicalRow = logicalRowToPhysical[row].toInt()
+            var (word, bit) = bitPosition(physicalRow, logicalColToDenseCol(startCol))
+            var col = startCol
+            // Process the first word, which may not be entirely filled, due to left zero padding
+            // Because of assert that [startCol] is always the first dense column, the first one
+            // must be the column we're looking for, so they're no need to zero out columns left of it.
             var block = denseElements[word]
             while (block.countTrailingZeroBits() < WORD_WIDTH) {
-                result.add(col + block.countTrailingZeroBits())
+                yield(col + block.countTrailingZeroBits() - bit)
                 block = block and selectMask(block.countTrailingZeroBits()).inv()
             }
-            col += WORD_WIDTH
+            col += WORD_WIDTH - bit
             word++
-        }
 
-        return result
+            while (col < width) {
+                block = denseElements[word]
+                // process the whole word in one shot to improve efficiency
+                while (block.countTrailingZeroBits() < WORD_WIDTH) {
+                    yield(col + block.countTrailingZeroBits())
+                    block = block and selectMask(block.countTrailingZeroBits()).inv()
+                }
+                col += WORD_WIDTH
+                word++
+            }
+        }
     }
 
-    override operator fun get(i: Int, j: Int): Octet {
+    override operator fun get(i: Int, j: Int): Boolean {
         val physicalI = logicalRowToPhysical[i].toInt()
         val physicalJ = logicalColToPhysical[j].toInt()
         return if (width - j <= numDenseColumns) {
             val (word, bit) = bitPosition(physicalI, logicalColToDenseCol(j))
-            if (denseElements[word] and selectMask(bit) != 0UL) {
-                Octet.ONE
-            } else {
-                Octet.ZERO
-            }
+            denseElements[word] and selectMask(bit) != 0UL
         } else {
-            sparseElements[physicalJ].get(physicalI) ?: Octet.ZERO
+            sparseElements[physicalJ][physicalI]
         }
     }
 
-    override fun getRowIter(row: Int, startCol: Int, endCol: Int): OctetIterator {
+    override fun rowIterator(row: Int, startCol: Int, endCol: Int): OctetIterator {
         if (endCol > width - numDenseColumns) {
-            TODO("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
+            throw NotImplementedError("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
         }
         val physicalRow = logicalRowToPhysical[row].toInt()
         val sparseElements = sparseElements[physicalRow]
-        return OctetIterator.newSparse(
+        return OctetIterator.sparse(
             startCol,
             endCol,
             sparseElements,
@@ -141,10 +166,12 @@ class SparseBinaryMatrix(
         )
     }
 
-    override fun getOnesInColumn(col: Int, startRow: Int, endRow: Int): List<Int> {
+    override fun onesInColumn(col: Int, startRow: Int, endRow: Int): List<Int> {
+        require(!columnIndexDisabled)
+        val sparseColumnarValues = requireNotNull(sparseColumnarValues)
         val physicalCol = logicalColToPhysical[col].toInt()
         val rows = ArrayList<Int>()
-        for (physicalRow in sparseColumnarValues!![physicalCol]) {
+        for (physicalRow in sparseColumnarValues[physicalCol]) {
             val logicalRow = physicalRowToLogical[physicalRow.toInt()].toInt()
             if (logicalRow in startRow until endRow) {
                 rows.add(logicalRow)
@@ -156,15 +183,18 @@ class SparseBinaryMatrix(
     override fun swapRows(i: Int, j: Int) {
         val physicalI = logicalRowToPhysical[i].toInt()
         val physicalJ = logicalRowToPhysical[j].toInt()
-        logicalRowToPhysical[i] = j.toUInt()
-        physicalRowToLogical[physicalI] = physicalJ.toUInt()
+        logicalRowToPhysical.swap(i, j)
+        physicalRowToLogical.swap(physicalI, physicalJ)
     }
 
     override fun swapColumns(i: Int, j: Int, startRowHint: Int) {
+        if (j >= width - numDenseColumns) {
+            throw NotImplementedError("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
+        }
         val physicalI = logicalColToPhysical[i].toInt()
         val physicalJ = logicalColToPhysical[j].toInt()
-        logicalColToPhysical[i] = j.toUShort()
-        physicalColToLogical[physicalI] = physicalJ.toUShort()
+        logicalColToPhysical.swap(i, j)
+        physicalColToLogical.swap(physicalI, physicalJ)
     }
 
     override fun enableColumnAccessAcceleration() {
@@ -184,14 +214,19 @@ class SparseBinaryMatrix(
     }
 
     override fun hintColumnDenseAndFrozen(i: Int) {
-        require(width - numDenseColumns - 1 == i) { "Can only freeze the last sparse column" }
+        require(width - numDenseColumns - 1 == i) {
+            "Can only freeze the last sparse column"
+        }
         require(!columnIndexDisabled)
         numDenseColumns++
         val (lastWord, _) = bitPosition(height - 1, numDenseColumns - 1)
+        // If this is in a new word
         if (lastWord >= denseElements.size) {
+            // Append a new set of words
             var src = denseElements.size
             denseElements = denseElements.copyOf(height)
             var dest = denseElements.size
+            // Re-space the elements, so that each row has an empty word
             while (src > 0) {
                 src -= 1
                 dest -= 1
@@ -206,14 +241,14 @@ class SparseBinaryMatrix(
         }
         val physicalI = logicalColToPhysical[i].toInt()
         for (maybePresentInRow in sparseElements[physicalI]) {
-            val physicalRow = maybePresentInRow
+            val physicalRow = maybePresentInRow.toInt()
             val value = sparseElements[physicalI].remove(physicalI)
-            if (value != null) {
-                val (word, bit) = bitPosition(physicalRow.toInt(), 0)
-                denseElements[word] = if (value == Octet.ZERO) {
-                    clearBit(denseElements[word], bit)
-                } else {
+            if (value) {
+                val (word, bit) = bitPosition(physicalRow, 0)
+                denseElements[word] = if (value) {
                     setBit(denseElements[word], bit)
+                } else {
+                    clearBit(denseElements[word], bit)
                 }
             }
         }
@@ -221,9 +256,12 @@ class SparseBinaryMatrix(
 
     override fun addAssignRows(dest: Int, src: Int, startCol: Int) {
         require(dest != src)
-        require(startCol == 0 || startCol == width - numDenseColumns)
+        require(startCol == 0 || startCol == width - numDenseColumns) {
+            "startCol must be zero or at the beginning of the U matrix"
+        }
         val physicalDest = logicalRowToPhysical[dest].toInt()
         val physicalSrc = logicalRowToPhysical[src].toInt()
+        // First handle the dense columns
         if (numDenseColumns > 0) {
             val (destWord, _) = bitPosition(physicalDest, 0)
             val (srcWord, _) = bitPosition(physicalSrc, 0)
@@ -233,20 +271,26 @@ class SparseBinaryMatrix(
         }
 
         if (startCol == 0) {
+            // Then the sparse columns
             val (destRow, tempRow) = sparseElements.bothIndices(physicalDest, physicalSrc)
+            // This shouldn't be needed, because while column indexing is enabled in first phase,
+            // columns are only eliminated one at a time in sparse section of matrix.
             check(columnIndexDisabled || tempRow.size == 1)
 
             val columnAdded = destRow.addAssign(tempRow)
+            // This shouldn't be needed, because while column indexing is enabled in first phase,
+            // columns are only removed.
             check(columnIndexDisabled || !columnAdded)
         }
     }
 
     override fun resize(newHeight: Int, newWidth: Int) {
         require(newHeight <= height)
+        // Only support same width or removing all the dense columns
         var columnsToRemove = width - newWidth
         require(columnsToRemove == 0 || columnsToRemove >= numDenseColumns)
         if (!columnIndexDisabled) {
-            TODO("Resize should only be used in phase 2, after column indexing is no longer needed")
+            throw NotImplementedError("Resize should only be used in phase 2, after column indexing is no longer needed")
         }
         val newSparse = Array<SparseBinaryVec?>(newHeight) { null }
         for (i in (sparseElements.indices).reversed()) {
@@ -258,6 +302,7 @@ class SparseBinaryMatrix(
         }
 
         if (columnsToRemove == 0 && numDenseColumns > 0) {
+            // TODO: optimize to not allocate this extra vec
             val newDense = ULongArray(newHeight * rowWordWidth())
             for (logicalRow in 0 until rowWordWidth()) {
                 val physicalRow = logicalRowToPhysical[logicalRow].toInt()
@@ -265,9 +310,10 @@ class SparseBinaryMatrix(
                     newDense[logicalRow * rowWordWidth() + word] = denseElements[physicalRow * rowWordWidth() + word]
                 }
             }
+            denseElements = newDense
         } else {
             columnsToRemove -= numDenseColumns
-            denseElements = ULongArray(0)
+            denseElements.fill(0u)
             numDenseColumns = 0
         }
 
@@ -278,6 +324,7 @@ class SparseBinaryMatrix(
             logicalRowToPhysical[i] = i.toUInt()
             physicalRowToLogical[i] = i.toUInt()
         }
+
         for (row in newSparse) {
             sparseElements.add(row!!)
         }
@@ -292,5 +339,13 @@ class SparseBinaryMatrix(
 
         width = newWidth
         height = newHeight
+    }
+
+    companion object {
+        val WORD_WIDTH = 64
+
+        fun selectMask(bit: Int) = 1UL shl bit
+        fun clearBit(word: ULong, bit: Int) = word and selectMask(bit).inv()
+        fun setBit(word: ULong, bit: Int) = word or selectMask(bit)
     }
 }
