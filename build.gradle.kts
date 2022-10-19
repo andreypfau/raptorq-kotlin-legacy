@@ -38,7 +38,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api("com.github.andreypfau:kotlinio-crypto:+")
+                implementation("io.ktor:ktor-io:2.1.2")
             }
         }
         val commonTest by getting {
