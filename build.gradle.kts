@@ -51,6 +51,16 @@ kotlin {
             dependsOn(commonTest)
         }
     }
+
+    targets.all {
+        compilations.all {
+            kotlinOptions {
+                freeCompilerArgs += "-opt-in=kotlin.ExperimentalUnsignedTypes"
+                freeCompilerArgs += "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes"
+                println("$freeCompilerArgs")
+            }
+        }
+    }
 }
 
 benchmark {

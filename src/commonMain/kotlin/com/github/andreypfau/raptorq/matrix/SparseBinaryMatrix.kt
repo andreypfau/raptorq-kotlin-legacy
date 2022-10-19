@@ -145,7 +145,7 @@ class SparseBinaryMatrix(
         val physicalCol = logicalColToPhysical[col].toInt()
         val rows = ArrayList<Int>()
         for (physicalRow in sparseColumnarValues!![physicalCol]) {
-            val logicalRow = physicalRowToLogical[physicalRow].toInt()
+            val logicalRow = physicalRowToLogical[physicalRow.toInt()].toInt()
             if (logicalRow in startRow until endRow) {
                 rows.add(logicalRow)
             }
@@ -172,7 +172,7 @@ class SparseBinaryMatrix(
         val builder = ImmutableListMapBuilder(height)
         sparseElements.forEachIndexed { physicalRow, elements ->
             elements.keysValues().forEach { (physicalRow, _) ->
-                builder.add(physicalRow.toShort(), physicalRow)
+                builder.add(physicalRow.toUShort(), physicalRow.toUInt())
             }
         }
         sparseColumnarValues = builder.build()
