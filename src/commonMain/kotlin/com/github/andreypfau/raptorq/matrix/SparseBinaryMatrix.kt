@@ -4,7 +4,7 @@ package com.github.andreypfau.raptorq.matrix
 
 import com.github.andreypfau.raptorq.arraymap.ImmutableListMap
 import com.github.andreypfau.raptorq.arraymap.ImmutableListMapBuilder
-import com.github.andreypfau.raptorq.iterators.OctetIterator
+import com.github.andreypfau.raptorq.iterators.BinaryIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
 import com.github.andreypfau.raptorq.sparse.SparseBinaryVec
 import com.github.andreypfau.raptorq.utils.bothIndices
@@ -152,13 +152,13 @@ class SparseBinaryMatrix(
         }
     }
 
-    override fun rowIterator(row: Int, startCol: Int, endCol: Int): OctetIterator {
+    override fun rowIterator(row: Int, startCol: Int, endCol: Int): BinaryIterator {
         if (endCol > width - numDenseColumns) {
             throw NotImplementedError("It was assumed that this wouldn't be needed, because the method would only be called on the V section of matrix A")
         }
         val physicalRow = logicalRowToPhysical[row].toInt()
         val sparseElements = sparseElements[physicalRow]
-        return OctetIterator.sparse(
+        return BinaryIterator.sparse(
             startCol,
             endCol,
             sparseElements,

@@ -1,6 +1,6 @@
 package com.github.andreypfau.raptorq.matrix
 
-import com.github.andreypfau.raptorq.iterators.OctetIterator
+import com.github.andreypfau.raptorq.iterators.BinaryIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
 
 interface BinaryMatrix {
@@ -13,7 +13,7 @@ interface BinaryMatrix {
 
     fun countOnes(row: Int, startCol: Int, endCol: Int): Int
 
-    fun rowIterator(row: Int, startCol: Int, endCol: Int): OctetIterator
+    fun rowIterator(row: Int, startCol: Int, endCol: Int): BinaryIterator
 
     fun onesInColumn(col: Int, startRow: Int, endRow: Int): List<Int>
 

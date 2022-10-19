@@ -2,7 +2,7 @@
 
 package com.github.andreypfau.raptorq.matrix
 
-import com.github.andreypfau.raptorq.iterators.OctetIterator
+import com.github.andreypfau.raptorq.iterators.BinaryIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
 import com.github.andreypfau.raptorq.utils.addAssignBinary
 import com.github.andreypfau.raptorq.utils.both
@@ -58,10 +58,10 @@ class DenseBinaryMatrix(
         return ones
     }
 
-    override fun rowIterator(row: Int, startCol: Int, endCol: Int): OctetIterator {
+    override fun rowIterator(row: Int, startCol: Int, endCol: Int): BinaryIterator {
         val (firstWord, firstBit) = bitPosition(row, startCol)
         val (lastWord, _) = bitPosition(row, endCol)
-        return OctetIterator.denseBinary(
+        return BinaryIterator.dense(
             startCol,
             endCol,
             firstBit,

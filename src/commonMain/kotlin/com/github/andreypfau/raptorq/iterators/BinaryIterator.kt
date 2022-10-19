@@ -3,10 +3,9 @@
 package com.github.andreypfau.raptorq.iterators
 
 import com.github.andreypfau.raptorq.matrix.DenseBinaryMatrix
-import com.github.andreypfau.raptorq.octet.Octet
 import com.github.andreypfau.raptorq.sparse.SparseBinaryVec
 
-class OctetIterator(
+class BinaryIterator(
     val startCol: Int,
     val endCol: Int,
     val denseElements: ULongArray,
@@ -16,12 +15,12 @@ class OctetIterator(
     val sparseElements: SparseBinaryVec?,
     var sparseIndex: Int,
     val sparsePhysicalColToLogical: UShortArray
-) : Iterator<Pair<Int, Octet>> {
-    private var nextElement: Pair<Int, Octet>? = nextOrNull()
+) : Iterator<Pair<Int, Boolean>> {
+    private var nextElement: Pair<Int, Boolean>? = nextOrNull()
 
     override fun hasNext(): Boolean = nextElement != null
 
-    override fun next(): Pair<Int, Octet> {
+    override fun next(): Pair<Int, Boolean> {
         try {
             return nextElement ?: throw NoSuchElementException()
         } finally {
@@ -29,7 +28,7 @@ class OctetIterator(
         }
     }
 
-    private fun nextOrNull(): Pair<Int, Octet>? {
+    private fun nextOrNull(): Pair<Int, Boolean>? {
         if (sparseElements != null) {
             val elements = sparseElements
             // Need to iterate over the whole array, since they're not sorted by logical col
@@ -49,11 +48,7 @@ class OctetIterator(
         } else {
             val oldIndex = denseIndex
             denseIndex += 1
-            val value = if (denseElements[denseWordIndex] and DenseBinaryMatrix.selectMask(denseBitIndex) == 0uL) {
-                Octet.ZERO
-            } else {
-                Octet.ONE
-            }
+            val value = denseElements[denseWordIndex] and DenseBinaryMatrix.selectMask(denseBitIndex) != 0uL
             denseBitIndex += 1
             if (denseBitIndex == 64) {
                 denseBitIndex = 0
@@ -69,8 +64,8 @@ class OctetIterator(
             endCol: Int,
             sparseElements: SparseBinaryVec,
             sparsePhysicalColToLogical: UShortArray
-        ): OctetIterator {
-            return OctetIterator(
+        ): BinaryIterator {
+            return BinaryIterator(
                 startCol = startCol,
                 endCol = endCol,
                 denseElements = ULongArray(0),
@@ -83,13 +78,13 @@ class OctetIterator(
             )
         }
 
-        fun denseBinary(
+        fun dense(
             startCol: Int,
             endCol: Int,
             startBit: Int,
             denseElements: ULongArray
-        ): OctetIterator {
-            return OctetIterator(
+        ): BinaryIterator {
+            return BinaryIterator(
                 startCol = 0,
                 endCol = endCol,
                 denseElements = denseElements,
