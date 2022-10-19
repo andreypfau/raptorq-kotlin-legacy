@@ -24,7 +24,7 @@ internal inline fun mulAssignScalarCommon(
     val scalarIndex = scalar.value.toInt()
     for (i in octets.indices) {
         val octetIndex = octets[i].toUByte().toInt()
-        octets[i] = OCTET_MUL[scalarIndex][octetIndex].toByte()
+        octets[i] = OCTET_MUL[scalarIndex][octetIndex]
     }
 }
 
@@ -36,7 +36,7 @@ internal inline fun fusedAddAssignMulScalarCommon(
     require(octets.size == other.size)
     val scalarIndex = scalar.value.toUInt().toInt()
     for (i in octets.indices) {
-        octets[i] = (octets[i] xor OCTET_MUL[scalarIndex][other[i].toUByte().toInt()].toByte())
+        octets[i] = (octets[i] xor OCTET_MUL[scalarIndex][other[i].toUByte().toInt()])
     }
 }
 

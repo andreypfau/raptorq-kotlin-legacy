@@ -14,8 +14,8 @@ value class Octet(
 
     operator fun times(other: Octet): Octet {
         if (this != ZERO && other != ZERO) {
-            val logU = OCTET_LOG[this.value.toInt()]
-            val logV = OCTET_LOG[other.value.toInt()]
+            val logU = OCTET_LOG[this.value.toInt()].toUByte()
+            val logV = OCTET_LOG[other.value.toInt()].toUByte()
             return aloha(logU + logV)
         }
         return ZERO
@@ -26,8 +26,8 @@ value class Octet(
             if (other == ZERO) {
                 throw ArithmeticException("Division by zero")
             }
-            val logU = OCTET_LOG[this.value.toInt()]
-            val logV = OCTET_LOG[other.value.toInt()]
+            val logU = OCTET_LOG[this.value.toInt()].toUByte()
+            val logV = OCTET_LOG[other.value.toInt()].toUByte()
             return aloha(255u + logU - logV)
         }
         return ZERO
@@ -35,21 +35,21 @@ value class Octet(
 
     fun fma(a: Octet, b: Octet): Octet {
         if (a != ZERO && b != ZERO) {
-            val logU = OCTET_LOG[a.value.toInt()]
-            val logV = OCTET_LOG[b.value.toInt()]
-            return Octet(value xor OCTET_EXP[(logU + logV).toInt()])
+            val logU = OCTET_LOG[a.value.toInt()].toUByte()
+            val logV = OCTET_LOG[b.value.toInt()].toUByte()
+            return Octet(value xor OCTET_EXP[(logU + logV).toInt()].toUByte())
         }
         return this
     }
 
-    fun toInt(): Int = value.toInt() and 0xFF
+    fun toInt(): Int = value.toInt()
     fun toByte(): Byte = value.toByte()
 
     companion object {
         val ZERO = Octet(0u)
         val ONE = Octet(1u)
 
-        fun aloha(i: UInt): Octet = Octet(OCTET_EXP[i.toInt()])
+        fun aloha(i: UInt): Octet = Octet(OCTET_EXP[i.toInt()].toUByte())
     }
 }
 

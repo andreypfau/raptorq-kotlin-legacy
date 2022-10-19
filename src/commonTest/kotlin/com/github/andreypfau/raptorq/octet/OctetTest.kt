@@ -45,7 +45,7 @@ class OctetTest {
 
     @Test
     fun unsafeMulGuarantess() {
-        val maxValue = OCTET_LOG.max()
+        val maxValue = OCTET_LOG.max().toUByte()
         assertTrue(2u * maxValue < OCTET_EXP.size.toUInt())
     }
 
