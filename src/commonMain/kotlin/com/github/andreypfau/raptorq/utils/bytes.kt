@@ -1,3 +1,5 @@
+@file:Suppress("OPT_IN_USAGE")
+
 package com.github.andreypfau.raptorq.utils
 
 fun ByteArray.getLong(index: Int): Long {

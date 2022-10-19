@@ -1,6 +1,6 @@
 package com.github.andreypfau.raptorq.symbol
 
-import com.github.andreypfau.raptorq.octet.addOctets
+import com.github.andreypfau.raptorq.octet.addAssign
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -8,7 +8,7 @@ value class Symbol(
     val value: ByteArray
 ) {
     operator fun plusAssign(other: Symbol) {
-        addOctets(value, other.value, value)
+        addAssign(value, other.value)
     }
 
     companion object {

@@ -1,3 +1,5 @@
+@file:Suppress("OPT_IN_USAGE")
+
 package com.github.andreypfau.raptorq.octet
 
 /*
@@ -62,7 +64,7 @@ impl BinaryOctetVec {
 }
  */
 class BinaryOctetVec(
-    val elements: List<ULong>,
+    val elements: ULongArray,
     val length: Int
 ) {
     companion object {

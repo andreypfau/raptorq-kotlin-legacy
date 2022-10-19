@@ -2,7 +2,6 @@
 
 package com.github.andreypfau.raptorq.octet
 
-import kotlin.experimental.xor
 import kotlin.jvm.JvmInline
 
 @JvmInline
@@ -42,6 +41,9 @@ value class Octet(
         }
         return this
     }
+
+    fun toInt(): Int = value.toInt() and 0xFF
+    fun toByte(): Byte = value.toByte()
 
     companion object {
         val ZERO = Octet(0u)

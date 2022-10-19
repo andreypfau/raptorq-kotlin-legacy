@@ -82,7 +82,7 @@ class SparseBinaryMatrix(
         val physicalRow = logicalRowToPhysical[row].toInt()
         val firstWord = bitPosition(physicalRow, 0).first
         val lastWord = firstWord + rowWordWidth()
-        return BinaryOctetVec(denseElements.slice(firstWord until lastWord), numDenseColumns)
+        return BinaryOctetVec(denseElements.copyOfRange(firstWord, lastWord), numDenseColumns)
     }
 
     override fun queryNonZeroColumns(row: Int, startCol: Int): List<Int> {
