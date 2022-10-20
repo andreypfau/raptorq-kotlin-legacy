@@ -35,10 +35,10 @@ class BinaryIterator(
             if (sparseIndex < elements.size) {
                 while (sparseIndex < elements.size) {
                     val entry = elements.getByRawIndex(sparseIndex)
-                    sparseIndex += 1
-                    val logicalCol = sparsePhysicalColToLogical[entry.first]
-                    if (logicalCol >= startCol.toUShort() && logicalCol < endCol.toUShort()) {
-                        return logicalCol.toInt() to entry.second
+                    sparseIndex++
+                    val logicalCol = sparsePhysicalColToLogical[entry.first].toInt()
+                    if (logicalCol in startCol until endCol) {
+                        return Pair(logicalCol, entry.second)
                     }
                 }
             }
@@ -49,10 +49,10 @@ class BinaryIterator(
             val oldIndex = denseIndex
             denseIndex += 1
             val value = denseElements[denseWordIndex] and DenseBinaryMatrix.selectMask(denseBitIndex) != 0uL
-            denseBitIndex += 1
+            denseBitIndex++
             if (denseBitIndex == 64) {
                 denseBitIndex = 0
-                denseWordIndex += 1
+                denseWordIndex++
             }
             return oldIndex to value
         }

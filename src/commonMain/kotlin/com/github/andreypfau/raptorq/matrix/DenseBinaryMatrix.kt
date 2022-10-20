@@ -29,9 +29,9 @@ class DenseBinaryMatrix(
     override operator fun set(i: Int, j: Int, value: Boolean) {
         val (word, bit) = bitPosition(i, j)
         if (value) {
-            setBit(elements[word], bit)
+            elements[word] = setBit(elements[word], bit)
         } else {
-            clearBit(elements[word], bit)
+            elements[word] = clearBit(elements[word], bit)
         }
     }
 
@@ -178,6 +178,17 @@ class DenseBinaryMatrix(
             check(src == newHeight * oldRowWidth)
         }
         elements = elements.copyOf(newHeight * newRowWidth)
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder()
+        for (row in 0 until height) {
+            for (col in 0 until width) {
+                sb.append(if (get(row, col)) '1' else '0')
+            }
+            sb.appendLine()
+        }
+        return sb.toString()
     }
 
     companion object {

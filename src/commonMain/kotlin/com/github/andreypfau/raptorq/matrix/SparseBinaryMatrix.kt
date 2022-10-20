@@ -46,7 +46,8 @@ class SparseBinaryMatrix(
     }
 
     fun bitPosition(row: Int, col: Int): Pair<Int, Int> {
-        return row * rowWordWidth() + wordOffset(col) to (leftPaddingBits() + col) % WORD_WIDTH
+        return row * rowWordWidth() + wordOffset(col) to
+            (leftPaddingBits() + col) % WORD_WIDTH
     }
 
     fun rowWordWidth() = (numDenseColumns + WORD_WIDTH - 1) / WORD_WIDTH
@@ -66,7 +67,7 @@ class SparseBinaryMatrix(
                 denseElements[word] = clearBit(denseElements[word], bit)
             }
         } else {
-            sparseElements[physicalJ][physicalI] = value
+            sparseElements[physicalI][physicalJ] = value
         }
     }
 
@@ -144,12 +145,13 @@ class SparseBinaryMatrix(
     override operator fun get(i: Int, j: Int): Boolean {
         val physicalI = logicalRowToPhysical[i].toInt()
         val physicalJ = logicalColToPhysical[j].toInt()
-        return if (width - j <= numDenseColumns) {
+        val result = if (width - j <= numDenseColumns) {
             val (word, bit) = bitPosition(physicalI, logicalColToDenseCol(j))
             denseElements[word] and selectMask(bit) != 0UL
         } else {
-            sparseElements[physicalJ][physicalI]
+            sparseElements[physicalI][physicalJ]
         }
+        return result
     }
 
     override fun rowIterator(row: Int, startCol: Int, endCol: Int): BinaryIterator {
@@ -339,6 +341,17 @@ class SparseBinaryMatrix(
 
         width = newWidth
         height = newHeight
+    }
+
+    override fun toString(): String {
+        val sb = StringBuilder()
+        for (row in 0 until height) {
+            for (col in 0 until width) {
+                sb.append(if (get(row, col)) '1' else '0')
+            }
+            sb.appendLine()
+        }
+        return sb.toString()
     }
 
     companion object {
