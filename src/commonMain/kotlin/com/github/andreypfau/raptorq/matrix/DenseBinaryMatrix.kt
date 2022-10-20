@@ -4,8 +4,6 @@ package com.github.andreypfau.raptorq.matrix
 
 import com.github.andreypfau.raptorq.iterators.BinaryIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
-import com.github.andreypfau.raptorq.utils.addAssignBinary
-import com.github.andreypfau.raptorq.utils.both
 
 class DenseBinaryMatrix(
     height: Int,
@@ -153,8 +151,9 @@ class DenseBinaryMatrix(
         val (destWord, _) = bitPosition(dest, 0)
         val (srcWord, _) = bitPosition(src, 0)
         val rowWidth = rowWordWidth
-        val (destRow, tempRow) = elements.both(destWord, srcWord, rowWidth)
-        addAssignBinary(destRow, tempRow)
+        for (word in 0 until rowWidth) {
+            elements[destWord + word] = elements[destWord + word] xor elements[srcWord + word]
+        }
     }
 
     override fun resize(newHeight: Int, newWidth: Int) {

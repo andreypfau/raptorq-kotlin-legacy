@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 
 class MatrixTest {
     @Test
-    fun rowIter() {
+    fun rowIter() = repeat(100) {
         val (dense, sparse) = Random.randDenseAndSparse(8)
         for (row in 0 until dense.height) {
             val startCol = Random.nextInt(0, dense.width - 2)
@@ -30,7 +30,7 @@ class MatrixTest {
     }
 
     @Test
-    fun swapRows() {
+    fun swapRows() = repeat(100) {
         // randDenseAndSparse() uses set(), so just check that it works
         val (dense, sparse) = Random.randDenseAndSparse(8)
         dense.swapRows(0, 4)
@@ -43,7 +43,7 @@ class MatrixTest {
     }
 
     @Test
-    fun swapColumns() {
+    fun swapColumns() = repeat(100) {
         // randDenseAndSparse() uses set(), so just check that it works
         val (dense, sparse) = Random.randDenseAndSparse(8)
         dense.swapColumns(0, 4, 0)
@@ -56,7 +56,7 @@ class MatrixTest {
     }
 
     @Test
-    fun countOnes() {
+    fun countOnes() = repeat(100) {
         // randDenseAndSparse() uses set(), so just check that it works
         val (dense, sparse) = Random.randDenseAndSparse(8)
         assertEquals(dense.countOnes(0, 0, 5), sparse.countOnes(0, 0, 5))
@@ -64,18 +64,32 @@ class MatrixTest {
         assertEquals(dense.countOnes(3, 1, 2), sparse.countOnes(3, 1, 2))
     }
 
-//    @Test
-//    fun fmaRows() {
-//        // randDenseAndSparse() uses set(), so just check that it works
-//        val (dense, sparse) = Random.randDenseAndSparse(8)
-//        dense.addAssignRows(0, 1, 0)
-//        dense.addAssignRows(0, 2, 0)
-//        dense.addAssignRows(2, 1, 0)
-//        sparse.addAssignRows(0, 1, 0)
-//        sparse.addAssignRows(0, 2, 0)
-//        sparse.addAssignRows(2, 1, 0)
-//        assertMatricesEquals(dense, sparse)
-//    }
+    @Test
+    fun fmaRows() = repeat(100) {
+        // randDenseAndSparse() uses set(), so just check that it works
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        dense.addAssignRows(0, 1, 0)
+        dense.addAssignRows(0, 2, 0)
+        dense.addAssignRows(2, 1, 0)
+        sparse.addAssignRows(0, 1, 0)
+        sparse.addAssignRows(0, 2, 0)
+        sparse.addAssignRows(2, 1, 0)
+        assertMatricesEquals(dense, sparse)
+    }
+
+    fun matrix(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {
+        val dense = DenseBinaryMatrix(size, size)
+        val sparse = SparseBinaryMatrix(size, size, 1)
+        dense[0, 0] = true
+        dense[1, 0] = true
+        dense[2, 0] = true
+        dense[3, 0] = true
+        sparse[0, 0] = true
+        sparse[1, 0] = true
+        sparse[2, 0] = true
+        sparse[3, 0] = true
+        return dense to sparse
+    }
 
     fun Random.randDenseAndSparse(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {
         val dense = DenseBinaryMatrix(size, size)

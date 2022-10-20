@@ -28,7 +28,8 @@ class SparseBinaryVec(
                 // Adding 1 + 1 = 0 in GF(256), so remove this
                 elements.removeAt(index)
             } else {
-                elements.add(index, otherIndex)
+                elements.add(otherIndex)
+                elements.sort()
                 return true
             }
             return false

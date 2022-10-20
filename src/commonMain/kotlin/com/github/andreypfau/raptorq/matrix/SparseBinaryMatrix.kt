@@ -7,7 +7,6 @@ import com.github.andreypfau.raptorq.arraymap.ImmutableListMapBuilder
 import com.github.andreypfau.raptorq.iterators.BinaryIterator
 import com.github.andreypfau.raptorq.octet.BinaryOctetVec
 import com.github.andreypfau.raptorq.sparse.SparseBinaryVec
-import com.github.andreypfau.raptorq.utils.bothIndices
 import com.github.andreypfau.raptorq.utils.swap
 
 /**
@@ -274,7 +273,8 @@ class SparseBinaryMatrix(
 
         if (startCol == 0) {
             // Then the sparse columns
-            val (destRow, tempRow) = sparseElements.bothIndices(physicalDest, physicalSrc)
+            val destRow = sparseElements[physicalDest]
+            val tempRow = sparseElements[physicalSrc]
             // This shouldn't be needed, because while column indexing is enabled in first phase,
             // columns are only eliminated one at a time in sparse section of matrix.
             check(columnIndexDisabled || tempRow.size == 1)
