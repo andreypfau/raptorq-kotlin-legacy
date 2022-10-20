@@ -29,15 +29,53 @@ class MatrixTest {
         }
     }
 
-    fun matrix(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {
-        val dense = DenseBinaryMatrix(size, size)
-        val sparse = SparseBinaryMatrix(size, size, 1)
-        dense[0, 0] = true
-        dense[3, 0] = true
-        sparse[0, 0] = true
-        sparse[3, 0] = true
-        return dense to sparse
+    @Test
+    fun swapRows() {
+        // randDenseAndSparse() uses set(), so just check that it works
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        dense.swapRows(0, 4)
+        dense.swapRows(1, 6)
+        dense.swapRows(1, 7)
+        sparse.swapRows(0, 4)
+        sparse.swapRows(1, 6)
+        sparse.swapRows(1, 7)
+        assertMatricesEquals(dense, sparse)
     }
+
+    @Test
+    fun swapColumns() {
+        // randDenseAndSparse() uses set(), so just check that it works
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        dense.swapColumns(0, 4, 0)
+        dense.swapColumns(1, 6, 0)
+        dense.swapColumns(1, 1, 0)
+        sparse.swapColumns(0, 4, 0)
+        sparse.swapColumns(1, 6, 0)
+        sparse.swapColumns(1, 1, 0)
+        assertMatricesEquals(dense, sparse)
+    }
+
+    @Test
+    fun countOnes() {
+        // randDenseAndSparse() uses set(), so just check that it works
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        assertEquals(dense.countOnes(0, 0, 5), sparse.countOnes(0, 0, 5))
+        assertEquals(dense.countOnes(2, 2, 6), sparse.countOnes(2, 2, 6))
+        assertEquals(dense.countOnes(3, 1, 2), sparse.countOnes(3, 1, 2))
+    }
+
+//    @Test
+//    fun fmaRows() {
+//        // randDenseAndSparse() uses set(), so just check that it works
+//        val (dense, sparse) = Random.randDenseAndSparse(8)
+//        dense.addAssignRows(0, 1, 0)
+//        dense.addAssignRows(0, 2, 0)
+//        dense.addAssignRows(2, 1, 0)
+//        sparse.addAssignRows(0, 1, 0)
+//        sparse.addAssignRows(0, 2, 0)
+//        sparse.addAssignRows(2, 1, 0)
+//        assertMatricesEquals(dense, sparse)
+//    }
 
     fun Random.randDenseAndSparse(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {
         val dense = DenseBinaryMatrix(size, size)
