@@ -6,23 +6,28 @@ import kotlin.experimental.xor
 
 internal inline fun fusedAddAssignMulScalarBinaryCommon(
     octets: ByteArray,
+    octetsOffset: Int,
+    octetsLength: Int,
     other: BinaryOctetVec,
     scalar: Octet
 ) {
-    require(octets.size == other.length)
+    require(octetsLength == other.length)
+    val octetVec = other.toOctetVec()
     if (scalar == Octet.ONE) {
-        addAssign(octets, other.toOctetVec())
+        addAssign(octets, octetsOffset, octetsLength, octetVec, 0, octetVec.size)
     } else {
-        fusedAddAssignMulScalar(octets, other.toOctetVec(), scalar)
+        fusedAddAssignMulScalar(octets, octetsOffset, octetsLength, octetVec, 0, octetVec.size, scalar)
     }
 }
 
 internal inline fun mulAssignScalarCommon(
     octets: ByteArray,
+    octetsOffset: Int,
+    octetsLength: Int,
     scalar: Octet
 ) {
     val scalarIndex = scalar.value.toInt()
-    for (i in octets.indices) {
+    for (i in octetsOffset until octetsOffset + octetsLength) {
         val octetIndex = octets[i].toUByte().toInt()
         octets[i] = OCTET_MUL[scalarIndex][octetIndex]
     }
@@ -30,23 +35,35 @@ internal inline fun mulAssignScalarCommon(
 
 internal inline fun fusedAddAssignMulScalarCommon(
     octets: ByteArray,
+    octetsOffset: Int,
+    octetsLength: Int,
     other: ByteArray,
+    otherOffset: Int,
+    otherLength: Int,
     scalar: Octet
 ) {
-    require(octets.size == other.size)
+    require(octetsLength == otherLength)
     val scalarIndex = scalar.value.toUInt().toInt()
-    for (i in octets.indices) {
-        octets[i] = (octets[i] xor OCTET_MUL[scalarIndex][other[i].toUByte().toInt()])
+    repeat(octetsLength) { i ->
+        val octetIndex = octetsOffset + i
+        val otherIndex = otherOffset + i
+        octets[octetIndex] = (octets[octetIndex] xor OCTET_MUL[scalarIndex][other[otherIndex].toUByte().toInt()])
     }
 }
 
 internal inline fun addAssignCommon(
     octets: ByteArray,
+    octetsOffset: Int,
+    octetsLength: Int,
     other: ByteArray,
+    otherOffset: Int,
+    otherLength: Int
 ): ByteArray {
-    require(octets.size == other.size)
-    octets.indices.forEach { index ->
-        octets[index] = octets[index] xor other[index]
+    require(octetsLength == otherLength) { "expected: octetLength == otherLength, actual: $octetsLength, $otherLength" }
+    repeat(octetsLength) { i ->
+        val octetIndex = octetsOffset + i
+        val otherIndex = otherOffset + i
+        octets[octetIndex] = octets[octetIndex] xor other[otherIndex]
     }
     return octets
 }

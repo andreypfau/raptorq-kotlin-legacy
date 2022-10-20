@@ -190,7 +190,7 @@ class DenseBinaryMatrix(
         return sb.toString()
     }
 
-    companion object {
+    companion object : BinaryMatrix.Factory<DenseBinaryMatrix> {
         const val WORD_WIDTH = 64
         const val WORD_WIDTH_LOG2 = 6
         const val WORD_WIDTH_MASK = 0x3F
@@ -206,5 +206,8 @@ class DenseBinaryMatrix(
         inline fun clearBit(word: ULong, bit: Int): ULong = word and selectMask(bit).inv()
 
         inline fun setBit(word: ULong, bit: Int): ULong = word or selectMask(bit)
+
+        override fun create(height: Int, width: Int, trailingDenseColumnHint: Int): DenseBinaryMatrix =
+            DenseBinaryMatrix(height, width)
     }
 }

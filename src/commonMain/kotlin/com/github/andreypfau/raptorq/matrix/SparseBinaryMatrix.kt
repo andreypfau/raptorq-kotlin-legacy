@@ -354,11 +354,14 @@ class SparseBinaryMatrix(
         return sb.toString()
     }
 
-    companion object {
+    companion object : BinaryMatrix.Factory<SparseBinaryMatrix> {
         val WORD_WIDTH = 64
 
         fun selectMask(bit: Int) = 1UL shl bit
         fun clearBit(word: ULong, bit: Int) = word and selectMask(bit).inv()
         fun setBit(word: ULong, bit: Int) = word or selectMask(bit)
+
+        override fun create(height: Int, width: Int, trailingDenseColumnHint: Int): SparseBinaryMatrix =
+            SparseBinaryMatrix(height, width, trailingDenseColumnHint)
     }
 }

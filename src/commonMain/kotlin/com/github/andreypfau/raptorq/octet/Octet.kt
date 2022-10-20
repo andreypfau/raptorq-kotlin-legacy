@@ -16,7 +16,7 @@ value class Octet(
         if (this != ZERO && other != ZERO) {
             val logU = OCTET_LOG[this.value.toInt()].toUByte()
             val logV = OCTET_LOG[other.value.toInt()].toUByte()
-            return aloha(logU + logV)
+            return alpha(logU + logV)
         }
         return ZERO
     }
@@ -28,7 +28,7 @@ value class Octet(
             }
             val logU = OCTET_LOG[this.value.toInt()].toUByte()
             val logV = OCTET_LOG[other.value.toInt()].toUByte()
-            return aloha(255u + logU - logV)
+            return alpha(255u + logU - logV)
         }
         return ZERO
     }
@@ -45,13 +45,18 @@ value class Octet(
     fun toInt(): Int = value.toInt()
     fun toByte(): Byte = value.toByte()
 
+    override fun toString(): String = "Octet { value: $value }"
+
     companion object {
         val ZERO = Octet(0u)
         val ONE = Octet(1u)
 
-        fun aloha(i: UInt): Octet = Octet(OCTET_EXP[i.toInt()].toUByte())
+        fun alpha(i: Int): Octet = Octet(OCTET_EXP[i].toUByte())
     }
 }
 
-fun UByte.asOctet(): Octet = Octet(this)
-fun Int.asOctet(): Octet = toUByte().asOctet()
+inline fun Octet.Companion.alpha(i: UInt): Octet = alpha(i.toInt())
+
+inline fun UByte.asOctet(): Octet = Octet(this)
+inline fun Byte.asOctet(): Octet = Octet(toUByte())
+inline fun Int.asOctet(): Octet = toUByte().asOctet()

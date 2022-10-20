@@ -34,4 +34,12 @@ interface BinaryMatrix {
     fun addAssignRows(dest: Int, src: Int, startCol: Int)
 
     fun resize(newHeight: Int, newWidth: Int)
+
+    fun interface Factory<T : BinaryMatrix> {
+        fun create(height: Int, width: Int, trailingDenseColumnHint: Int): T
+    }
 }
+
+inline operator fun <T : BinaryMatrix> BinaryMatrix.Factory<T>.invoke(
+    height: Int, width: Int, trailingDenseColumnHint: Int
+): T = create(height, width, trailingDenseColumnHint)
