@@ -77,18 +77,46 @@ class MatrixTest {
         assertMatricesEquals(dense, sparse)
     }
 
-    fun matrix(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {
-        val dense = DenseBinaryMatrix(size, size)
-        val sparse = SparseBinaryMatrix(size, size, 1)
-        dense[0, 0] = true
-        dense[1, 0] = true
-        dense[2, 0] = true
-        dense[3, 0] = true
-        sparse[0, 0] = true
-        sparse[1, 0] = true
-        sparse[2, 0] = true
-        sparse[3, 0] = true
-        return dense to sparse
+    @Test
+    fun resize() = repeat(100) {
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        dense.disableColumnAccessAcceleration()
+        sparse.disableColumnAccessAcceleration()
+        dense.resize(5, 5)
+        sparse.resize(5, 5)
+        assertMatricesEquals(dense, sparse)
+    }
+
+    @Test
+    fun hintColumnDenseAndFrozen() = repeat(100) {
+        val (dense, sparse) = Random.randDenseAndSparse(8)
+        sparse.enableColumnAccessAcceleration()
+        sparse.hintColumnDenseAndFrozen(6)
+        sparse.hintColumnDenseAndFrozen(5)
+        assertMatricesEquals(dense, sparse)
+    }
+
+    @Test
+    fun denseStorageMath() {
+        val size = 128
+        val (dense, sparse) = Random.randDenseAndSparse(size)
+        sparse.enableColumnAccessAcceleration()
+        for (i in size - 2 downTo 0) {
+            sparse.hintColumnDenseAndFrozen(i)
+            assertMatricesEquals(dense, sparse)
+        }
+        assertMatricesEquals(dense, sparse)
+        sparse.disableColumnAccessAcceleration()
+        repeat(1000) {
+            val i = Random.nextInt(0, size)
+            var j = Random.nextInt(0, size)
+            while (i == j) {
+                j = Random.nextInt(0, size)
+            }
+            dense.addAssignRows(i, j, 0)
+            sparse.addAssignRows(i, j, 0)
+        }
+        assertMatricesEquals(dense, sparse)
     }
 
     fun Random.randDenseAndSparse(size: Int): Pair<DenseBinaryMatrix, SparseBinaryMatrix> {

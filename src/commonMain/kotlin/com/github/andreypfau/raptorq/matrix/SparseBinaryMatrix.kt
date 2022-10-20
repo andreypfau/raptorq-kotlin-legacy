@@ -202,8 +202,8 @@ class SparseBinaryMatrix(
         columnIndexDisabled = false
         val builder = ImmutableListMapBuilder(height)
         sparseElements.forEachIndexed { physicalRow, elements ->
-            elements.keysValues().forEach { (physicalRow, _) ->
-                builder.add(physicalRow.toUShort(), physicalRow.toUInt())
+            elements.keysValues().forEach { (physicalCol, _) ->
+                builder.add(physicalCol.toUShort(), physicalRow.toUInt())
             }
         }
         sparseColumnarValues = builder.build()
@@ -215,7 +215,7 @@ class SparseBinaryMatrix(
     }
 
     override fun hintColumnDenseAndFrozen(i: Int) {
-        require(width - numDenseColumns - 1 == i) {
+        require((width - numDenseColumns - 1) == i) {
             "Can only freeze the last sparse column"
         }
         require(!columnIndexDisabled)
@@ -225,7 +225,7 @@ class SparseBinaryMatrix(
         if (lastWord >= denseElements.size) {
             // Append a new set of words
             var src = denseElements.size
-            denseElements = denseElements.copyOf(height)
+            denseElements = denseElements.copyOf(src + height)
             var dest = denseElements.size
             // Re-space the elements, so that each row has an empty word
             while (src > 0) {
@@ -241,9 +241,9 @@ class SparseBinaryMatrix(
             check(dest == 0)
         }
         val physicalI = logicalColToPhysical[i].toInt()
-        for (maybePresentInRow in sparseElements[physicalI]) {
+        for (maybePresentInRow in sparseColumnarValues?.get(physicalI) ?: emptyList()) {
             val physicalRow = maybePresentInRow.toInt()
-            val value = sparseElements[physicalI].remove(physicalI)
+            val value = sparseElements[physicalRow].remove(physicalI)
             if (value) {
                 val (word, bit) = bitPosition(physicalRow, 0)
                 denseElements[word] = if (value) {

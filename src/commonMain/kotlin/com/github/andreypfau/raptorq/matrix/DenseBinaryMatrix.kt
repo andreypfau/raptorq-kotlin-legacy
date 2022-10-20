@@ -161,7 +161,7 @@ class DenseBinaryMatrix(
         require(newWidth <= width)
         val oldRowWidth = rowWordWidth
         height = newHeight
-        width = width
+        width = newWidth
         val newRowWidth = rowWordWidth
         val wordsToRemove = oldRowWidth - newRowWidth
         if (wordsToRemove > 0) {

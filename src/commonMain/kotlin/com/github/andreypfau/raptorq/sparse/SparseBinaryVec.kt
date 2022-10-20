@@ -113,5 +113,5 @@ class SparseBinaryVec(
         }
     }
 
-    override fun iterator(): Iterator<UShort> = elements.iterator()
+    override fun iterator(): MutableIterator<UShort> = elements.iterator()
 }
