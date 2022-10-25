@@ -60,3 +60,4 @@ inline fun Octet.Companion.alpha(i: UInt): Octet = alpha(i.toInt())
 inline fun UByte.asOctet(): Octet = Octet(this)
 inline fun Byte.asOctet(): Octet = Octet(toUByte())
 inline fun Int.asOctet(): Octet = toUByte().asOctet()
+inline fun Boolean.asOctet(): Octet = if (this) Octet.ONE else Octet.ZERO

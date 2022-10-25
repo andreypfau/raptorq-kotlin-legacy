@@ -110,7 +110,7 @@ internal fun generateHdpcRows(
 // See section 5.3.3.4.2
 // Returns the HDPC rows separately. These logically replace the rows `S..(S + H)` of the constraint
 // matrix. They are returned separately to allow easier optimizations.
-fun <T : BinaryMatrix> generateConstraintMatrix(
+internal fun <T : BinaryMatrix> generateConstraintMatrix(
     sourceBlockSymbols: Int,
     encodedSymbolIndices: IntArray,
     matrixFactory: BinaryMatrix.Factory<T>
@@ -143,7 +143,7 @@ fun <T : BinaryMatrix> generateConstraintMatrix(
 
     // I_S
     for (i in 0 until S) {
-        matrix[i, B + i] = true
+        matrix[i, i + B] = true
     }
 
     // G_LDPC,2

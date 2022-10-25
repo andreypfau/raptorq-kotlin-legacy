@@ -58,7 +58,7 @@ object RaptorQ {
         val y = ((B.toULong() + internalSymbolId.toULong() * A.toULong()) % 4294967296uL).toUInt()
         val v = rand(y, 0u, 1048576u)
         val d = deg(v, w)
-        val a = 1u + rand(v, 1u, w - 1u)
+        val a = 1u + rand(y, 1u, w - 1u)
         val b = rand(y, 2u, w)
         val d1 = if (d < 4u) {
             2u + rand(internalSymbolId, 3u, 2u)

@@ -16,17 +16,13 @@ class BinaryIterator(
     var sparseIndex: Int,
     val sparsePhysicalColToLogical: UShortArray
 ) : Iterator<Pair<Int, Boolean>> {
-    private var nextElement: Pair<Int, Boolean>? = nextOrNull()
-
-    override fun hasNext(): Boolean = nextElement != null
-
-    override fun next(): Pair<Int, Boolean> {
-        try {
-            return nextElement ?: throw NoSuchElementException()
-        } finally {
-            nextElement = nextOrNull()
-        }
+    override fun hasNext(): Boolean {
+        return if (sparseElements != null) {
+            sparseIndex < sparseElements.size
+        } else denseIndex != endCol
     }
+
+    override fun next(): Pair<Int, Boolean> = nextOrNull() ?: throw NoSuchElementException()
 
     private fun nextOrNull(): Pair<Int, Boolean>? {
         if (sparseElements != null) {
@@ -56,6 +52,23 @@ class BinaryIterator(
             }
             return oldIndex to value
         }
+    }
+
+    fun clone(): ClonedBinaryIterator {
+        val sparseElements = sparseElements?.keysValues()?.map { (physicalCol, value) ->
+            sparsePhysicalColToLogical[physicalCol].toInt() to value
+        }?.filter { (logicalCol, _) ->
+            logicalCol in startCol until endCol
+        }?.toList()
+        return ClonedBinaryIterator(
+            endCol = endCol,
+            denseElements = denseElements,
+            denseIndex = denseIndex,
+            denseWordIndex = denseWordIndex,
+            denseBitIndex = denseBitIndex,
+            sparseElements = sparseElements,
+            sparseIndex = sparseIndex
+        )
     }
 
     companion object {

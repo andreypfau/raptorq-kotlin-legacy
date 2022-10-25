@@ -67,21 +67,21 @@ class DenseBinaryMatrix(
         )
     }
 
-    override fun onesInColumn(col: Int, startRow: Int, endRow: Int): List<Int> {
+    override fun onesInColumn(col: Int, startRow: Int, endRow: Int): Sequence<Int> {
         val rows = ArrayList<Int>()
         for (row in startRow until endRow) {
             if (get(row, col)) {
                 rows.add(row)
             }
         }
-        return rows
+        return rows.asSequence()
     }
 
     override fun subRowAsOctets(row: Int, startCol: Int): BinaryOctetVec {
         val result = ULongArray((width - startCol + BinaryOctetVec.WORD_WIDTH - 1) / BinaryOctetVec.WORD_WIDTH)
         var word = result.size
         var bit = 0
-        for (col in width downTo startCol) {
+        for (col in width - 1 downTo startCol) {
             if (bit == 0) {
                 bit = BinaryOctetVec.WORD_WIDTH - 1
                 word--
@@ -176,7 +176,8 @@ class DenseBinaryMatrix(
             }
             check(src == newHeight * oldRowWidth)
         }
-        elements = elements.copyOf(newHeight * newRowWidth)
+        val truncate = newHeight * rowWordWidth
+        elements = elements.copyOf(truncate)
     }
 
     override fun toString(): String {
@@ -189,6 +190,12 @@ class DenseBinaryMatrix(
         }
         return sb.toString()
     }
+
+    override fun copy(): DenseBinaryMatrix = DenseBinaryMatrix(
+        height,
+        width,
+        elements.copyOf()
+    )
 
     companion object : BinaryMatrix.Factory<DenseBinaryMatrix> {
         const val WORD_WIDTH = 64

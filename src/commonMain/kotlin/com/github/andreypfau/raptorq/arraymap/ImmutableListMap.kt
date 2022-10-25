@@ -15,4 +15,6 @@ class ImmutableListMap(
         }
         return values.copyOfRange(start, end)
     }
+
+    fun copy(): ImmutableListMap = ImmutableListMap(offsets.copyOf(), values.copyOf())
 }

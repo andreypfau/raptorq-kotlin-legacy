@@ -114,4 +114,6 @@ class SparseBinaryVec(
     }
 
     override fun iterator(): MutableIterator<UShort> = elements.iterator()
+
+    fun copy() = SparseBinaryVec(ArrayList(elements))
 }

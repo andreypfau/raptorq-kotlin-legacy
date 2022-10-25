@@ -30,20 +30,12 @@ class UndirectedGraph(
 
     fun getAdjacentNodes(node: UShort): AdjacentIterator {
         val firstCandidate = nodeEdgeStartingIndex[node.toInt()]
-        return AdjacentIterator(edges.iterator().iterator().apply {
+        return AdjacentIterator(edges.iterator().apply {
             repeat(firstCandidate.toInt()) { next() }
         }, node)
     }
 
-    fun nodes(): List<UShort> {
-        val result = ArrayList<UShort>()
-        edges.forEach { (node, _) ->
-            if (result.isEmpty() || result[result.lastIndex] != node) {
-                result.add(node)
-            }
-        }
-        return result
-    }
+    fun nodes(): Sequence<UShort> = edges.asSequence().map { it.first }.distinct()
 
     override fun iterator(): Iterator<UShort> = nodes().iterator()
 }

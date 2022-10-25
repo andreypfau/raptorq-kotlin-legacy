@@ -15,7 +15,7 @@ interface BinaryMatrix {
 
     fun rowIterator(row: Int, startCol: Int, endCol: Int): BinaryIterator
 
-    fun onesInColumn(col: Int, startRow: Int, endRow: Int): List<Int>
+    fun onesInColumn(col: Int, startRow: Int, endRow: Int): Sequence<Int>
 
     fun subRowAsOctets(row: Int, startCol: Int): BinaryOctetVec
 
@@ -34,6 +34,8 @@ interface BinaryMatrix {
     fun addAssignRows(dest: Int, src: Int, startCol: Int)
 
     fun resize(newHeight: Int, newWidth: Int)
+
+    fun copy(): BinaryMatrix
 
     fun interface Factory<T : BinaryMatrix> {
         fun create(height: Int, width: Int, trailingDenseColumnHint: Int): T

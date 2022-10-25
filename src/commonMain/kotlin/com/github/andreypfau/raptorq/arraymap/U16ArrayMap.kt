@@ -12,14 +12,14 @@ class U16ArrayMap(
     )
 
     fun swap(key: Int, otherKey: Int) {
-        val temp = get(key)
-        set(key, get(otherKey))
-        set(otherKey, temp)
+        val temp = elements[key]
+        elements[key] = elements[otherKey]
+        elements[otherKey] = temp
     }
 
-    fun get(key: Int): UShort = elements[key - offset]
+    operator fun get(key: Int): UShort = elements[key - offset]
 
-    fun set(key: Int, value: UShort) {
+    operator fun set(key: Int, value: UShort) {
         elements[key - offset] = value
     }
 
@@ -32,4 +32,9 @@ class U16ArrayMap(
     fun decrement(key: Int) {
         elements[key - offset]--
     }
+
+    fun copy(
+        offset: Int = this.offset,
+        elements: UShortArray = this.elements
+    ) = U16ArrayMap(offset, elements.copyOf())
 }

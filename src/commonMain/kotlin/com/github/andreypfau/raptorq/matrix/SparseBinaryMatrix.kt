@@ -167,7 +167,7 @@ class SparseBinaryMatrix(
         )
     }
 
-    override fun onesInColumn(col: Int, startRow: Int, endRow: Int): List<Int> {
+    override fun onesInColumn(col: Int, startRow: Int, endRow: Int): Sequence<Int> {
         require(!columnIndexDisabled)
         val sparseColumnarValues = requireNotNull(sparseColumnarValues)
         val physicalCol = logicalColToPhysical[col].toInt()
@@ -178,7 +178,7 @@ class SparseBinaryMatrix(
                 rows.add(logicalRow)
             }
         }
-        return rows
+        return rows.asSequence()
     }
 
     override fun swapRows(i: Int, j: Int) {
@@ -353,6 +353,20 @@ class SparseBinaryMatrix(
         }
         return sb.toString()
     }
+
+    override fun copy(): SparseBinaryMatrix = SparseBinaryMatrix(
+        height = height,
+        width = width,
+        numDenseColumns = numDenseColumns,
+        sparseElements = sparseElements.map { it.copy() }.toMutableList(),
+        denseElements = denseElements.copyOf(),
+        sparseColumnarValues = sparseColumnarValues?.copy(),
+        logicalRowToPhysical = logicalRowToPhysical.copyOf(),
+        physicalRowToLogical = physicalRowToLogical.copyOf(),
+        logicalColToPhysical = logicalColToPhysical.copyOf(),
+        physicalColToLogical = physicalColToLogical.copyOf(),
+        columnIndexDisabled = columnIndexDisabled
+    )
 
     companion object : BinaryMatrix.Factory<SparseBinaryMatrix> {
         val WORD_WIDTH = 64
